@@ -8,6 +8,7 @@ import (
 type Decklist struct {
 	Id             int            `json:"id" bson:"_id"`
 	DateCreatedStr string         `json:"date_creation"`
+	DateUpdatedStr string         `json:"date_update"`
 	Slots          map[string]int `json:"slots"`
 	Meta           string         `json:"meta"`
 	HeroCode       string         `json:"investigator_code"`
@@ -15,6 +16,11 @@ type Decklist struct {
 
 func (d *Decklist) DateCreated() time.Time {
 	t, _ := time.Parse(time.RFC3339, d.DateCreatedStr)
+	return t
+}
+
+func (d *Decklist) DateUpdated() time.Time {
+	t, _ := time.Parse(time.RFC3339, d.DateUpdatedStr)
 	return t
 }
 

@@ -33,10 +33,8 @@ func Run() {
 	router.SetTrustedProxies([]string{"http://localhost"})
 
 	router.GET("/packs", server.GetPacks)
-	router.GET("/latest_deck", server.GetLatestDeck)
-	router.GET("/card_value/:code", server.GetCardValue)
-	router.GET("/pack_value/:code", server.GetPackValue)
 	router.GET("/pack_values", server.GetAllPackValues)
+	router.GET("/card_values", server.GetAllCardValues)
 
 	router.Run(":9999")
 }
@@ -54,26 +52,16 @@ func (s *Server) GetPacks(c *gin.Context) {
 	respond(c, b, err)
 }
 
-func (s *Server) GetLatestDeck(c *gin.Context) {
-	b, err := s.ctrl.GetNewestDeck()
-	respond(c, b, err)
-}
-
-func (s *Server) GetCardValue(c *gin.Context) {
-	code := c.Param("code")
-	b, err := s.ctrl.ValueCard(code)
-	respond(c, b, err)
-}
-
-func (s *Server) GetPackValue(c *gin.Context) {
-	code := c.Param("code")
-	b, err := s.ctrl.ValuePack(code)
-	respond(c, b, err)
-}
-
 func (s *Server) GetAllPackValues(c *gin.Context) {
 	ownedStr := c.Query("owned")
 	owned := strings.Split(ownedStr, ",")
 	b, err := s.ctrl.ValueAllPacks(owned)
+	respond(c, b, err)
+}
+
+func (s *Server) GetAllCardValues(c *gin.Context) {
+	ownedStr := c.Query("owned")
+	owned := strings.Split(ownedStr, ",")
+	b, err := s.ctrl.ValueAllCards(owned)
 	respond(c, b, err)
 }

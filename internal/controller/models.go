@@ -1,9 +1,25 @@
 package controller
 
-import "github.com/colbymilton/marchamps-valuator/internal/utils"
+import (
+	"time"
+
+	"github.com/colbymilton/marchamps-valuator/internal/utils"
+)
+
+type Card struct {
+	Code          string    `json:"code" bson:"_id"`
+	Name          string    `json:"name"`
+	PackCodes     []string  `json:"packCodes"`
+	TypeCode      string    `json:"typeCode"`
+	Aspect        string    `json:"aspect"`
+	Traits        []string  `json:"traits"`
+	LockingTrait  string    `json:"lockingTrait"`
+	DateAvailable time.Time `json:"dateAvailable"`
+	DuplicateBy   []string  `json:"duplicatedBy"`
+}
 
 type CardValue struct {
-	Code               string  `json:"code"`
+	Code               string  `json:"code" bson:"_id"`
 	Name               string  `json:"name"`
 	Value              float64 `json:"value"`
 	NewMod             float64 `json:"newMod"`
