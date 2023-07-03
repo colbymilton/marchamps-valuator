@@ -23,3 +23,5 @@
 .air.toml
 /tmp
 .env
+/web/node_modules
+/web/.vscode
