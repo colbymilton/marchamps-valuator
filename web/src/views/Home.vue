@@ -1,7 +1,7 @@
 <template>
-  <HelloWorld />
+  <Valuator />
 </template>
 
 <script setup>
-  import HelloWorld from '@/components/Valuator.vue'
+  import Valuator from '@/components/Valuator.vue'
 </script>

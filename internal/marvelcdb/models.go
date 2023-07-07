@@ -44,12 +44,16 @@ func (d *Decklist) Aspects() []string {
 type Card struct {
 	Code        string   `json:"code" bson:"_id"`
 	Name        string   `json:"name"`
+	SubName     string   `json:"subname"`
 	PackCode    string   `json:"pack_code"`
 	TypeCode    string   `json:"type_code"`
 	FactionCode string   `json:"faction_code"`
 	Traits      string   `json:"traits"`
 	DuplicateOf string   `json:"duplicate_of_code"`
 	DuplicateBy []string `json:"duplicated_by"`
+	Text        string   `json:"text"`
+	CardSetName string   `json:"card_set_name"`
+	LinkedCard  *Card    `json:"linked_card"`
 }
 
 type Pack struct {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/colbymilton/marchamps-valuator/internal/controller"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,13 +25,18 @@ func Run() {
 
 	// init controller
 	server.ctrl = controller.NewValuator()
-	if err := server.ctrl.UpdateDatabase(); err != nil {
+	if err := server.ctrl.Update(); err != nil {
 		panic(err)
 	}
 
 	// init router
 	router := gin.Default()
 	router.SetTrustedProxies([]string{"http://localhost"})
+
+	// CORS
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000"}
+	router.Use(cors.New(config))
 
 	router.GET("/packs", server.GetPacks)
 	router.GET("/pack_values", server.GetAllPackValues)

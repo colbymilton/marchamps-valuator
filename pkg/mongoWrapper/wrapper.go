@@ -66,6 +66,12 @@ func GetMany[T any](mdb *MongoDB, coll string, filter bson.D, sort bson.M) ([]*T
 	return things, nil
 }
 
+// GetAll returns a slice of T objects that
+// are retrieved from the specified database and collection without filters or sorting
+func GetAll[T any](mdb *MongoDB, coll string) ([]*T, error) {
+	return GetMany[T](mdb, coll, BsonNoneD, BsonNoneM)
+}
+
 // GetOne returns a limit of 1 thing
 // returns nil, nil if there isn't one thing to return
 func GetOne[T any](mdb *MongoDB, coll string, filter bson.D, sort bson.M) (*T, error) {
@@ -86,4 +92,37 @@ func GetOne[T any](mdb *MongoDB, coll string, filter bson.D, sort bson.M) (*T, e
 	}
 
 	return nil, nil
+}
+
+func EmptyCollection(mdb *MongoDB, coll string) {
+	mdb.db.Collection(coll).Drop(context.Background())
+}
+
+func GetCollectionSize(mdb *MongoDB, coll string) int {
+	result := mdb.db.RunCommand(context.Background(), bson.M{"collStats": coll})
+	var document bson.M
+	if err := result.Decode(&document); err != nil {
+		return -1
+	}
+	if i, ok := document["count"].(int32); !ok {
+		return -2
+	} else {
+		return int(i)
+	}
+}
+
+// BuildEqualsFilter returns the bson.D representation of simple equals filter
+// with given key/value
+func BuildEqualsFilter(key string, val interface{}) bson.D {
+	return bson.D{{Key: key, Value: val}}
+}
+
+// BuildAndFilter takes in a set of existing filters and returns a filter
+// that "ands" them all together
+func BuildAndFilter(parts []bson.D) bson.D {
+	a := bson.A{}
+	for _, part := range parts {
+		a = append(a, part)
+	}
+	return bson.D{{Key: "$and", Value: a}}
 }

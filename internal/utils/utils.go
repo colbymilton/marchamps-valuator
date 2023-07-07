@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"log"
-	"math"
+	"strings"
 )
 
 func PrintJSON(i any) {
@@ -24,6 +24,12 @@ func SliceContains[T string](slice []T, find T) bool {
 	return false
 }
 
-func RoundFloat3(in float64) float64 {
-	return math.Round(in*1000) / 1000
+func StringsContains(ss []string, os string) bool {
+	for _, s := range ss {
+		if strings.EqualFold(s, os) {
+			return true
+		}
+	}
+
+	return false
 }

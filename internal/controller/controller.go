@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 	"log"
+	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -14,12 +16,12 @@ import (
 )
 
 const (
-	cPacks        = "packs"
-	cCards        = "cards"
-	cDecks        = "decks"
-	cCardValues   = "card-values"
-	cPackValues   = "pack-values"
-	cStartingDate = "2020-01-01"
+	cPacks      = "packs"
+	cCards      = "cards"
+	cDecks      = "decks"
+	cHeroes     = "heroes"
+	cCardValues = "card-values"
+	cPackValues = "pack-values"
 )
 
 type Valuator struct {
@@ -36,20 +38,167 @@ func NewValuator() *Valuator {
 		log.Fatalln(err)
 	}
 	v.mCli = mcli
-	v.db = mw.NewMongoDB("mongodb://localhost:27017", "marchamps-valuator")
+	mongoConnStr := fmt.Sprintf("mongodb://%v:%v", os.Getenv("MONGO_ADDRESS"), os.Getenv("MONGO_PORT"))
+	v.db = mw.NewMongoDB(mongoConnStr, "marchamps-valuator")
+
+	if os.Getenv("DELETE_ALL_ON_STARTUP") == "true" {
+		mw.EmptyCollection(v.db, cCards)
+		mw.EmptyCollection(v.db, cPacks)
+		mw.EmptyCollection(v.db, cHeroes)
+		mw.EmptyCollection(v.db, cCardValues)
+		mw.EmptyCollection(v.db, cPackValues)
+	}
+
 	return v
 }
 
-func (v *Valuator) UpdateDatabase() error {
-	// get latest packs
+// ValueAllCards handles the /card_values endpoint
+func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
+	// grab base card values from db
+	cvs, err := mw.GetMany[CardValue](v.db, cCardValues, mw.BsonNoneD, mw.BsonNoneM)
+	if err != nil {
+		return nil, err
+	}
+
+	// make map of owned cards
+	ownedCards, err := v.getCardsFromPacks(owned)
+	if err != nil {
+		return nil, err
+	}
+
+	// get all heroes
+	allHeroes, err := mw.GetMany[Hero](v.db, cHeroes, mw.BsonNoneD, mw.BsonNoneM)
+	if err != nil {
+		return nil, err
+	}
+
+	// make map of owned heroes
+	ownedHeroes := map[string]*Hero{}
+	for _, hero := range allHeroes {
+		if utils.StringsContains(owned, hero.PackCode) {
+			ownedHeroes[hero.Code] = hero
+		}
+	}
+
+	// modify base pack values based on owned cards
+	for _, cv := range cvs {
+		adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, "")
+	}
+
+	sort.Slice(cvs, func(i, j int) bool { return cvs[i].Value > cvs[j].Value })
+
+	return cvs, nil
+}
+
+// ValueAllPacks handles the /pack_values endpoint
+func (v *Valuator) ValueAllPacks(owned []string) ([]*PackValue, error) {
+	// grab base pack values from db
+	pvs, err := mw.GetMany[PackValue](v.db, cPackValues, mw.BsonNoneD, mw.BsonNoneM)
+	if err != nil {
+		return nil, err
+	}
+
+	// make map of owned cards
+	ownedCards, err := v.getCardsFromPacks(owned)
+	if err != nil {
+		return nil, err
+	}
+
+	// get all heroes
+	allHeroes, err := mw.GetMany[Hero](v.db, cHeroes, mw.BsonNoneD, mw.BsonNoneM)
+	if err != nil {
+		return nil, err
+	}
+
+	// make map of owned heroes
+	ownedHeroes := map[string]*Hero{}
+	for _, hero := range allHeroes {
+		if utils.StringsContains(owned, hero.PackCode) {
+			ownedHeroes[hero.Code] = hero
+		}
+	}
+
+	// modify base pack values based on owned cards
+	for _, pv := range pvs {
+		for _, cv := range pv.CardValues {
+			adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, pv.Code)
+		}
+		sort.Slice(pv.CardValues, func(i, j int) bool { return pv.CardValues[i].Value > pv.CardValues[j].Value })
+		pv.Calculate()
+	}
+
+	sort.Slice(pvs, func(i, j int) bool { return pvs[i].ValueSum > pvs[j].ValueSum })
+
+	return pvs, nil
+}
+
+// GetPacks handles the /packs endpoint
+func (v *Valuator) GetPacks() ([]*marvel.Pack, error) {
+	return mw.GetMany[marvel.Pack](v.db, cPacks, mw.BsonNoneD, bson.M{"availablestr": 1})
+}
+
+// Update is called on start up
+func (v *Valuator) Update() error {
+	// update packs
+	if err := v.updatePacks(); err != nil {
+		return err
+	}
+
+	// update cards
+	if err := v.updateCards(); err != nil {
+		return err
+	}
+
+	// update heroes
+	if err := v.updateHeroes(); err != nil {
+		return err
+	}
+
+	// update decks
+	decksAdded, err := v.updateDecks()
+	if err != nil {
+		return err
+	}
+
+	// update card values
+	if decksAdded || true { // todo remove true
+		if err := v.updateCardValues(); err != nil {
+			return err
+		}
+	}
+
+	// update pack values
+	if decksAdded || true { // todo remove true
+		if err := v.updatePackValues(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (v *Valuator) updatePacks() error {
+	log.Println("Updating local list of packs.")
 	packs, err := v.mCli.GetAllPacks()
 	if err != nil {
 		return err
 	}
-	if err := mw.CreateMany(v.db, cPacks, packs); err != nil {
+
+	// defer log.Println("Local pack count:", mw.GetCollectionSize(v.db, cPacks))
+
+	return mw.CreateMany(v.db, cPacks, packs)
+}
+
+func (v *Valuator) updateCards() error {
+	log.Println("Updating local list of cards.")
+
+	// get packs
+	packs, err := mw.GetAll[marvel.Pack](v.db, cPacks)
+	if err != nil {
 		return err
 	}
-	// build pack map for future use when convert cards
+
+	// build pack map
 	packMap := make(map[string]*marvel.Pack)
 	for _, pack := range packs {
 		packMap[pack.Code] = pack
@@ -61,13 +210,9 @@ func (v *Valuator) UpdateDatabase() error {
 		return err
 	}
 
-	// convert cards to local
+	// convert marvel api cards to local cards
 	dups := make([]*marvel.Card, 0)
 	for _, mCard := range mCards {
-		if mCard.FactionCode == "hero" {
-			continue // skip hero cards
-		}
-
 		if mCard.DuplicateOf != "" {
 			dups = append(dups, mCard)
 			continue // handle dups later
@@ -80,9 +225,19 @@ func (v *Valuator) UpdateDatabase() error {
 			TypeCode:      mCard.TypeCode,
 			Aspect:        mCard.FactionCode,
 			Traits:        strings.Split(mCard.Traits, ". "),
-			LockingTrait:  "", // TODO
+			LockingTraits: parseLockingTraits(mCard.Text),
 			DateAvailable: packMap[mCard.PackCode].DateAvailable(),
 			DuplicateBy:   []string{},
+			Text:          mCard.Text,
+			CardSetName:   mCard.CardSetName,
+		}
+
+		if mCard.LinkedCard != nil {
+			card.LinkedCardCode = mCard.LinkedCard.Code
+		}
+
+		if mCard.SubName != "" {
+			card.Name += fmt.Sprintf(" (%v)", mCard.SubName)
 		}
 
 		v.cards[card.Code] = card
@@ -98,125 +253,238 @@ func (v *Valuator) UpdateDatabase() error {
 		oCard.DuplicateBy = append(oCard.DuplicateBy, dup.Code)
 		v.cards[dup.Code] = oCard // point to the same card
 	}
-	if err := mw.CreateMany(v.db, cCards, v.getCards()); err != nil {
-		return err
-	}
 
-	// get latest decks
-	// when was the last deck stored?
-	addedDecks := false
-	lt, _ := time.Parse("2006-01-02", cStartingDate)
-	deck, err := mw.GetOne[marvel.Decklist](v.db, cDecks, mw.BsonNoneD, bson.M{"datecreatedstr": -1})
+	// defer log.Println("Local card count:", mw.GetCollectionSize(v.db, cCards))
+
+	return mw.CreateMany(v.db, cCards, v.getUniqueCards())
+}
+
+func (v *Valuator) updateHeroes() error {
+	log.Println("Updating local list of heroes.")
+
+	// get hero cards
+	identityCards, err := mw.GetMany[Card](v.db, cCards, mw.BuildEqualsFilter("aspect", "hero"), mw.BsonNoneM)
 	if err != nil {
 		return err
 	}
-	if deck != nil {
-		lt = deck.DateCreated().Add(time.Hour * 24)
+
+	// convert to heroes
+	rawHeroes := []*Hero{}
+	for _, heroCard := range identityCards {
+		if heroCard.TypeCode == "hero" {
+			hero := &Hero{
+				Code:     heroCard.Code,
+				Name:     heroCard.Name,
+				PackCode: heroCard.PackCodes[0],
+				Traits:   heroCard.Traits,
+			}
+			if heroCard.LinkedCardCode != "" {
+				linkedCard := v.cards[heroCard.LinkedCardCode]
+				if linkedCard == nil {
+					return fmt.Errorf("could not find linked card")
+				}
+				hero.Merge(&Hero{
+					Code:   linkedCard.Code,
+					Traits: linkedCard.Traits,
+				})
+			}
+			rawHeroes = append(rawHeroes, hero)
+		}
 	}
-	// get decks since then
+
+	// merge same name & same pack heroes
+	// this covers cases like "Ironheart" who has more than 1 hero card
+	heroesBy := map[string]*Hero{}
+	for _, hero := range rawHeroes {
+		u := hero.Name + hero.PackCode
+		if _, ok := heroesBy[u]; !ok {
+			heroesBy[u] = hero
+		} else {
+			heroesBy[u].Merge(hero)
+		}
+	}
+
+	heroes := []*Hero{}
+	for _, hero := range heroesBy {
+		// add possible granted traits from hero cards to hero
+		heroCards, err := mw.GetMany[Card](v.db, cCards, mw.BuildEqualsFilter("cardsetname", hero.Name), mw.BsonNoneM)
+		if err != nil {
+			return err
+		}
+
+		for _, heroCard := range heroCards {
+			grantedTrait := parseGrantedTrait(heroCard)
+			if grantedTrait != "" {
+				hero.Traits = append(hero.Traits, grantedTrait)
+			}
+		}
+		hero.SanitizeTraits()
+		heroes = append(heroes, hero)
+	}
+
+	// defer log.Println("Local hero count:", mw.GetCollectionSize(v.db, cHeroes))
+
+	return mw.CreateMany(v.db, cHeroes, heroes)
+}
+
+func (v *Valuator) updateDecks() (isNewDecks bool, err error) {
+	log.Println("Updating local list of decks.")
+
+	isNewDecks = false
+
+	// default latest time to our starting date
+	latestTime, _ := time.Parse("2006-01-02", os.Getenv("DECKLISTS_FROM_TIME"))
+
+	// get the latest deck we have stored and update latest time if needed
+	deck, err := mw.GetOne[marvel.Decklist](v.db, cDecks, mw.BsonNoneD, bson.M{"datecreatedstr": -1})
+	if err != nil {
+		return false, err
+	}
+	if deck != nil {
+		latestTime = deck.DateCreated().Add(time.Hour * 24)
+	}
+
+	// get decks since latest time
 	for {
-		if lt.After(time.Now()) {
+		if latestTime.After(time.Now()) {
 			break
 		}
 
-		decks, err := v.mCli.GetDecklists(lt)
+		decks, err := v.mCli.GetDecklists(latestTime)
 		if err != nil {
 			// marvelcdb api seems to return a 500 if there are simply no decks, just try the next day
 			if !strings.Contains(err.Error(), "500 Internal Server Error") {
-				return err
+				return false, err
 			}
 		}
 		log.Println("Adding more decks:", len(decks))
 
 		if len(decks) > 0 {
-			addedDecks = true
+			isNewDecks = true
 			if err := mw.CreateMany(v.db, cDecks, decks); err != nil {
-				return err
+				return false, err
 			}
 		}
 
-		lt = lt.Add(time.Hour * 24)
+		latestTime = latestTime.Add(time.Hour * 24)
 	}
 
-	// update values of cards and packs
-	if addedDecks || true {
-		// get all decks (for value calculation below)
-		allDecks, err := mw.GetMany[marvel.Decklist](v.db, cDecks, mw.BsonNoneD, mw.BsonNoneM)
+	// defer log.Println("Local deck count:", mw.GetCollectionSize(v.db, cDecks))
+
+	return isNewDecks, nil
+}
+
+func (v *Valuator) updateCardValues() error {
+	log.Println("Updating local list of base card values.")
+
+	// get all decks
+	allDecks, err := mw.GetAll[marvel.Decklist](v.db, cDecks)
+	if err != nil {
+		return err
+	}
+
+	// get all heroes
+	allHeroes, err := mw.GetAll[Hero](v.db, cHeroes)
+	if err != nil {
+		return err
+	}
+
+	// prepare hero map
+	heroesByCode := map[string]*Hero{}
+	for _, hero := range allHeroes {
+		heroesByCode[hero.Code[:len(hero.Code)-1]] = hero
+	}
+
+	// get all cards
+	allCards := v.getUniqueCards()
+
+	// loop through every card and check if each deck is eligible to run that card or not and if it does
+	cardValues := []*CardValue{}
+	for _, card := range allCards {
+		cardValue := &CardValue{
+			Code:   card.Code,
+			Card:   card,
+			NewMod: 1,
+		}
+
+		for _, deck := range allDecks {
+			hero := heroesByCode[deck.HeroCode[:len(deck.HeroCode)-1]]
+			if hero == nil {
+				return fmt.Errorf("could not find hero from decklist")
+			}
+
+			if isCardEligibleForDeck(card, deck, hero) {
+				cardValue.EligibleDecksCount += 1
+
+				// check if card (or duplicates) are in the deck
+				toCheck := []string{card.Code}
+				toCheck = append(toCheck, card.DuplicateBy...)
+				inUse := false
+				for _, code := range toCheck {
+					if count, ok := deck.Slots[code]; ok && count > 0 {
+						inUse = true
+						break
+					}
+				}
+				if inUse {
+					cardValue.InDecksCount += 1
+				}
+			}
+		}
+
+		cardValue.Calculate()
+		cardValues = append(cardValues, cardValue)
+	}
+
+	sort.Slice(cardValues, func(i, j int) bool { return cardValues[i].Value > cardValues[j].Value })
+
+	// defer log.Println("Local card values count:", mw.GetCollectionSize(v.db, cCardValues))
+
+	return mw.CreateMany(v.db, cCardValues, cardValues)
+}
+
+func (v *Valuator) updatePackValues() error {
+	log.Println("Updating local list of base pack values.")
+
+	// get packs
+	allPacks, err := mw.GetAll[marvel.Pack](v.db, cPacks)
+	if err != nil {
+		return err
+	}
+
+	packValues := make([]*PackValue, 0)
+	for _, pack := range allPacks {
+		// get cards in pack
+		packCards, err := v.getCardsFromPack(pack.Code)
 		if err != nil {
 			return err
 		}
 
-		// get the base value of every card
-		baseCVs := v.calculateCardValues(allDecks, v.getCards())
-		if err := mw.CreateMany(v.db, cCardValues, baseCVs); err != nil {
-			return err
+		// get card values for those cards
+		cardCodes := make([]string, len(packCards))
+		for i, pCard := range packCards {
+			cardCodes[i] = pCard.Code
 		}
-
-		// get the pase value of every pack
-		basePVs, err := v.calculateAllPackValues()
+		filter := bson.D{{Key: "_id", Value: bson.D{{"$in", cardCodes}}}}
+		cvs, err := mw.GetMany[CardValue](v.db, cCardValues, filter, bson.M{"Value": -1})
 		if err != nil {
 			return err
 		}
-		if err := mw.CreateMany(v.db, cPackValues, basePVs); err != nil {
-			return err
+
+		packValue := &PackValue{
+			Code:       pack.Code,
+			Pack:       pack,
+			CardValues: cvs,
 		}
+		packValue.Calculate()
+		packValues = append(packValues, packValue)
 	}
 
-	return nil
-}
+	sort.Slice(packValues, func(i, j int) bool { return packValues[i].ValueSum > packValues[j].ValueSum })
 
-func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
-	// grab base card values from db
-	cvs, err := mw.GetMany[CardValue](v.db, cCardValues, mw.BsonNoneD, mw.BsonNoneM)
-	if err != nil {
-		return nil, err
-	}
+	// defer log.Println("Local pack values count:", mw.GetCollectionSize(v.db, cPackValues))
 
-	// make map of owned cards
-	ownedCards, err := v.getCardsFromPacks(owned)
-	if err != nil {
-		return nil, err
-	}
-
-	// modify base pack values based on owned cards
-	for _, cv := range cvs {
-		adjustCardValue(cv, ownedCards)
-	}
-
-	sort.Slice(cvs, func(i, j int) bool { return cvs[i].Value > cvs[j].Value })
-
-	return cvs, nil
-}
-
-func (v *Valuator) ValueAllPacks(owned []string) ([]*PackValue, error) {
-	// grab base pack values from db
-	pvs, err := mw.GetMany[PackValue](v.db, cPackValues, mw.BsonNoneD, mw.BsonNoneM)
-	if err != nil {
-		return nil, err
-	}
-
-	// make map of owned cards
-	ownedCards, err := v.getCardsFromPacks(owned)
-	if err != nil {
-		return nil, err
-	}
-
-	// modify base pack values based on owned cards
-	for _, pv := range pvs {
-		for _, cv := range pv.CardValues {
-			adjustCardValue(cv, ownedCards)
-		}
-		sort.Slice(pv.CardValues, func(i, j int) bool { return pv.CardValues[i].Value > pv.CardValues[j].Value })
-		pv.Calculate()
-	}
-
-	sort.Slice(pvs, func(i, j int) bool { return pvs[i].ValueSum > pvs[j].ValueSum })
-
-	return pvs, nil
-}
-
-func (v *Valuator) GetPacks() ([]*marvel.Pack, error) {
-	return mw.GetMany[marvel.Pack](v.db, cPacks, mw.BsonNoneD, bson.M{"availablestr": 1})
+	return mw.CreateMany(v.db, cPackValues, packValues)
 }
 
 func (v *Valuator) getCardsFromPack(packCode string) ([]*Card, error) {
@@ -224,7 +492,7 @@ func (v *Valuator) getCardsFromPack(packCode string) ([]*Card, error) {
 		{"$and",
 			bson.A{
 				bson.D{{"packcodes", packCode}},
-				bson.D{{"factioncode", bson.D{{"$ne", "hero"}}}},
+				bson.D{{"aspect", bson.D{{"$in", []string{"basic", "justice", "protection", "aggression", "leadership"}}}}},
 			},
 		},
 	}
@@ -246,96 +514,7 @@ func (v *Valuator) getCardsFromPacks(packCodes []string) (map[string]*Card, erro
 	return allCards, nil
 }
 
-func (v *Valuator) calculateAllPackValues() ([]*PackValue, error) {
-	// get packs
-	packs, err := mw.GetMany[marvel.Pack](v.db, cPacks, mw.BsonNoneD, mw.BsonNoneM)
-	if err != nil {
-		return nil, err
-	}
-
-	pvs := make([]*PackValue, 0)
-	for _, pack := range packs {
-		// get cards in pack
-		pCards, err := v.getCardsFromPack(pack.Code)
-		if err != nil {
-			return nil, err
-		}
-
-		// get card values for those cards
-		cardCodes := make([]string, len(pCards))
-		for i, pCard := range pCards {
-			cardCodes[i] = pCard.Code
-		}
-		filter := bson.D{{"_id", bson.D{{"$in", cardCodes}}}}
-		cvs, err := mw.GetMany[CardValue](v.db, cCardValues, filter, bson.M{"Value": -1})
-		if err != nil {
-			return nil, err
-		}
-		sort.Slice(cvs, func(i, j int) bool { return cvs[i].Value > cvs[j].Value })
-
-		pv := &PackValue{
-			Code:       pack.Code,
-			CardValues: cvs,
-		}
-		pv.Calculate()
-		pvs = append(pvs, pv)
-	}
-
-	sort.Slice(pvs, func(i, j int) bool { return pvs[i].ValueSum > pvs[j].ValueSum })
-
-	return pvs, nil
-}
-
-func (v *Valuator) calculateCardValues(decks []*marvel.Decklist, cards []*Card) []*CardValue {
-	// prepare card values
-	cvs := make([]*CardValue, len(cards))
-	for i, card := range cards {
-		cvs[i] = &CardValue{
-			Code:   card.Code,
-			Name:   card.Name,
-			NewMod: 1,
-		}
-	}
-
-	// loop through every deck and check if each card (or duplicate versions) are used
-	for _, deck := range decks {
-		deckTime := deck.DateUpdated()
-		for i, cv := range cvs {
-			card := cards[i]
-
-			if deckTime.Before(card.DateAvailable) {
-				continue // not eligable if the deck was made before the card released
-			}
-
-			if card.Aspect != "basic" && !utils.SliceContains(deck.Aspects(), card.Aspect) {
-				continue // card aspect needs to be basic or match the deck
-			}
-
-			cv.EligableDecksCount += 1
-
-			// check if card (or duplicates) are in the deck
-			toCheck := []string{card.Code}
-			toCheck = append(toCheck, card.DuplicateBy...)
-			inUse := false
-			for _, code := range toCheck {
-				if count, ok := deck.Slots[code]; ok && count > 0 {
-					inUse = true
-					break
-				}
-			}
-			if inUse {
-				cv.InDecksCount += 1
-			}
-		}
-	}
-	for _, cv := range cvs {
-		cv.Calculate()
-	}
-	sort.Slice(cvs, func(i, j int) bool { return cvs[i].Value > cvs[j].Value })
-	return cvs
-}
-
-func (v *Valuator) getCards() []*Card {
+func (v *Valuator) getUniqueCards() []*Card {
 	cards := make([]*Card, 0)
 	for oCode, card := range v.cards {
 		if card.Code == oCode { // avoid duplicates
@@ -345,9 +524,114 @@ func (v *Valuator) getCards() []*Card {
 	return cards
 }
 
-func adjustCardValue(cv *CardValue, ownedCards map[string]*Card) {
+func isCardEligibleForDeck(card *Card, deck *marvel.Decklist, hero *Hero) bool {
+	// not eligable if the deck was made before the card released
+	if deck.DateUpdated().Before(card.DateAvailable) {
+		return false
+	}
+
+	// card aspect needs to be basic or match the deck
+	if card.Aspect != "basic" && !utils.StringsContains(deck.Aspects(), card.Aspect) {
+		return false
+	}
+
+	// does the card name match the heroes name
+	// TODO
+
+	// does the card have a locking trait
+	// what hero is the deck running
+	// does that hero have the locking trait
+	if len(card.LockingTraits) > 0 {
+		for _, trait := range card.LockingTraits {
+			if utils.StringsContains(hero.Traits, trait) {
+				return true
+			}
+		}
+		return false
+	}
+
+	return true
+}
+
+func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map[string]*Hero, allHeroes []*Hero, packCode string) {
+	// owned cards
 	if _, ok := ownedCards[cv.Code]; ok {
 		cv.NewMod = 0
-		cv.Calculate()
 	}
+
+	// trait-locked cards
+	if cv.Card.LockingTraits != nil && len(cv.Card.LockingTraits) > 0 {
+		// how many total heroes are there
+		packHeroes := map[string]*Hero{}
+		traitedHeroes := []*Hero{}
+		for _, hero := range allHeroes {
+			for _, trait := range cv.Card.LockingTraits {
+				if hero.PackCode == packCode {
+					packHeroes[hero.Code] = hero
+				}
+				if utils.StringsContains(hero.Traits, trait) {
+					traitedHeroes = append(traitedHeroes, hero)
+					break
+				}
+			}
+		}
+		cv.EligibleHeroCount = len(traitedHeroes)
+
+		// how many owned
+		count := 0
+		for _, hero := range traitedHeroes {
+			if _, ok := ownedHeroes[hero.Code]; ok {
+				count++
+			} else if _, ok := packHeroes[hero.Code]; ok {
+				count++
+			}
+		}
+		cv.OwnedHeroCount = count
+	}
+
+	cv.Calculate()
+}
+
+func parseGrantedTrait(card *Card) string {
+	// "gain the BLANK trait"
+	r1 := regexp.MustCompile(`gain the (.+) trait`)
+
+	// "gains the BLANK trait"
+	r2 := regexp.MustCompile(`gains the (.+) trait`)
+
+	matches := r1.FindStringSubmatch(card.Text)
+	if len(matches) > 1 {
+		return strings.Trim(matches[1], "[].")
+	}
+	matches = r2.FindStringSubmatch(card.Text)
+	if len(matches) > 1 {
+		return strings.Trim(matches[1], "[].")
+	}
+
+	return ""
+}
+
+func parseLockingTraits(text string) []string {
+	// "Play only if your identity has the BLANK or BLANK trait"
+	r := regexp.MustCompile(`Play only if your identity has the (.+) or (.+) trait`)
+	matches := r.FindStringSubmatch(text)
+	if len(matches) > 2 {
+		return []string{strings.Trim(matches[1], "[]."), strings.Trim(matches[2], "[].")}
+	}
+
+	// "Play only if your identity has the BLANK trait"
+	r = regexp.MustCompile(`Play only if your identity has the (.+) trait`)
+	matches = r.FindStringSubmatch(text)
+	if len(matches) > 1 {
+		return []string{strings.Trim(matches[1], "[].")}
+	}
+
+	// "Play only if you have the BLANK trait"
+	r = regexp.MustCompile(`Play only if you have the (.+) trait`)
+	matches = r.FindStringSubmatch(text)
+	if len(matches) > 1 {
+		return []string{strings.Trim(matches[1], "[].")}
+	}
+
+	return []string{}
 }
