@@ -9,13 +9,13 @@
             <v-row>
                 <v-col cols="6">
                     <v-label class="ml-4 text-h6">Light Themes</v-label>
-                    <v-list-item v-for="theme in light_themes" :key="theme" @click="changeTheme(theme)">
+                    <v-list-item v-for="theme in lightThemes" :key="theme" @click="changeTheme(theme.code)">
                         <v-label>{{ theme.title }}</v-label> 
                     </v-list-item>
                 </v-col>
                 <v-col cols="6">
                     <v-label class="ml-4 text-h6">Dark Themes</v-label>
-                    <v-list-item v-for="theme in dark_themes" :key="theme" @click="changeTheme(theme)">
+                    <v-list-item v-for="theme in darkThemes" :key="theme" @click="changeTheme(theme.code)">
                         <v-label>{{ theme.title }}</v-label> 
                     </v-list-item>
                 </v-col>
@@ -31,7 +31,7 @@
     
     const vuetifyTheme = useTheme()
 
-    let dark_themes = [
+    let darkThemes = [
         {
             title: "Scarlet Witch",
             code: "scarletWitch",
@@ -46,7 +46,7 @@
         }
     ]
 
-    let light_themes = [
+    let lightThemes = [
         {
             title: "Captain America",
             code: "captainAmerica",
@@ -61,8 +61,14 @@
         },
     ]
 
-    function changeTheme(theme) {
-        console.log("pressed", theme)
-        vuetifyTheme.global.name.value = theme.code;
+    // on setup load theme from localstorage
+    let storedTheme = localStorage.getItem("marchamps-valuator-theme")
+    if (storedTheme != null) {
+        changeTheme(storedTheme)
+    }
+
+    function changeTheme(code) {
+        vuetifyTheme.global.name.value = code;
+        localStorage.setItem("marchamps-valuator-theme", code)
     }
 </script>
