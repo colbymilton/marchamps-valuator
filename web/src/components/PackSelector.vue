@@ -17,7 +17,7 @@
                         </div>
                     </v-col>
                 </v-row>
-                <v-btn ripple :loading="loading" @click="getValues">Get Values</v-btn>
+                <v-btn ripple color="secondary" :loading="loading" @click="getValues">Get Values</v-btn>
             </div>
         </v-expand-transition>
 
