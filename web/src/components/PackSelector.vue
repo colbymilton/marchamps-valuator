@@ -1,5 +1,5 @@
 <template>
-    <v-card color="brown-lighten-4" class="ma-8 py-5">
+    <v-card class="ma-8 py-5">
         <div @click="expand = !expand">
             <div>
                 <v-label class="text-h6">Owned Packs</v-label>
@@ -11,9 +11,11 @@
         <v-expand-transition>
             <div v-show="expand">
                 <v-row dense class="pa-5" justify="center">
-                    <div v-for="pack in store.packs" :key="pack.code" class="pa-0 mx-3 my-n3">
-                        <v-checkbox :label="pack.name" v-model="pack.owned" :disabled="pack.locked" class="black"/>
-                    </div>
+                    <v-col v-for="pack in store.packs" cols="12" sm="4" lg="2">
+                        <div :key="pack.code" class="pa-0 mx-3 my-n3">
+                            <v-checkbox :label="pack.name" v-model="pack.owned" :disabled="pack.locked" class="black"/>
+                        </div>
+                    </v-col>
                 </v-row>
                 <v-btn ripple :loading="loading" @click="getValues">Get Values</v-btn>
             </div>

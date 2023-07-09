@@ -221,6 +221,7 @@ func (v *Valuator) updateCards() error {
 		card := &Card{
 			Code:          mCard.Code,
 			Name:          mCard.Name,
+			Subname:       mCard.SubName,
 			PackCodes:     []string{mCard.PackCode},
 			TypeCode:      mCard.TypeCode,
 			Aspect:        mCard.FactionCode,
@@ -234,10 +235,6 @@ func (v *Valuator) updateCards() error {
 
 		if mCard.LinkedCard != nil {
 			card.LinkedCardCode = mCard.LinkedCard.Code
-		}
-
-		if mCard.SubName != "" {
-			card.Name += fmt.Sprintf(" (%v)", mCard.SubName)
 		}
 
 		v.cards[card.Code] = card

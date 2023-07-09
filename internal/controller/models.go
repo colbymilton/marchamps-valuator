@@ -14,6 +14,7 @@ import (
 type Card struct {
 	Code           string    `json:"code" bson:"_id"`
 	Name           string    `json:"name"`
+	Subname        string    `json:"subname"`
 	PackCodes      []string  `json:"packCodes"`
 	TypeCode       string    `json:"typeCode"`
 	Aspect         string    `json:"aspect"`

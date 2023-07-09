@@ -1,6 +1,6 @@
 <template>
-    <v-card :key="props.cardValue.code" :title="props.cardValue.card.name" class="mb-4 pb-4"  @click="openCard"
-    :color="getColor()">
+    <v-card :key="props.cardValue.code" :title="props.cardValue.card.name" class="pb-4 mb-4 flex-grow-1" @click="openCard" :color="getColor()">
+        <v-card-item v-if="props.cardValue.card.subname != ''" class="pt-0 mt-n3">{{ props.cardValue.card.subname }}</v-card-item>
         <v-tooltip activator="parent" location="top">{{ props.cardValue.card.name }}</v-tooltip>
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.cardValue.value }}</b>

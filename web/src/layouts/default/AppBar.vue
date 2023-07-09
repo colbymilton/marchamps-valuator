@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar flat color="#F38181">
+  <v-app-bar flat color="primary">
     <v-app-bar-title>
       <v-icon icon="mdi-cards" />
 
