@@ -41,7 +41,7 @@ export const useAppStore = () => {
         for (let i = 0; i < this.packs.length; i++) {
           let pack = this.packs[i];
           if (pack.owned) {
-            s += pack.code + ","
+            s += pack.code + ",";
           }
         }
         return s;

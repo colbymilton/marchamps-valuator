@@ -12,7 +12,7 @@
             <div v-show="expand">
                 <v-row dense class="pa-5" justify="center">
                     <v-col v-for="pack in store.packs" cols="12" sm="4" lg="2">
-                        <div :key="pack.code" class="pa-0 mx-3 my-n3">
+                        <div :key="pack.code" class="pa-0 mx-3 my-n6">
                             <v-checkbox :label="pack.name" v-model="pack.owned" :disabled="pack.locked" class="black"/>
                         </div>
                     </v-col>
@@ -27,7 +27,7 @@
 
 <script setup>
     import { useAppStore } from '@/store/app';
-    import { reactive, ref } from 'vue';
+    import { ref } from 'vue';
 
     const expand = ref(true);
     const store = useAppStore();
@@ -39,7 +39,7 @@
         const result = await fetch('http://localhost:9999/pack_values?owned=' + s);
         const data = await result.json();
         store.packValues = data;
-        store.selectedPack = store.packValues[0]
+        store.selectedPack = store.packValues[0];
         loading.value = false;
         expand.value = false;
     };

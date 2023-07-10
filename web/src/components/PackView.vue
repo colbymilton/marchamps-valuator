@@ -9,9 +9,8 @@
 
 <script setup>
     import { useAppStore } from '@/store/app';
-    import { reactive } from 'vue';
 
-    const props = defineProps(['packValue'])
+    const props = defineProps(['packValue']);
     const store = useAppStore();
 
     async function selectPack() {
@@ -22,9 +21,9 @@
     function countNew() {
         let count = 0;
         for (let i = 0; i < props.packValue.cardValues.length; i++) {
-            let cv = props.packValue.cardValues[i]
+            let cv = props.packValue.cardValues[i];
             if (cv.newMod == 1) {
-                count++
+                count++;
             }
         }
         return count;

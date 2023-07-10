@@ -8,13 +8,13 @@
         <v-card>
             <v-row>
                 <v-col cols="6">
-                    <v-label class="ml-4 text-h6">Light Themes</v-label>
+                    <v-label class="ml-4 mt-1 text-h6">Light Themes</v-label>
                     <v-list-item v-for="theme in lightThemes" :key="theme" @click="changeTheme(theme.code)">
                         <v-label>{{ theme.title }}</v-label> 
                     </v-list-item>
                 </v-col>
                 <v-col cols="6">
-                    <v-label class="ml-4 text-h6">Dark Themes</v-label>
+                    <v-label class="ml-4 mt-1 text-h6">Dark Themes</v-label>
                     <v-list-item v-for="theme in darkThemes" :key="theme" @click="changeTheme(theme.code)">
                         <v-label>{{ theme.title }}</v-label> 
                     </v-list-item>

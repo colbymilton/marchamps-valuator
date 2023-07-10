@@ -578,7 +578,7 @@ func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map
 				}
 			}
 		}
-		cv.EligibleHeroCount = len(traitedHeroes)
+		cv.EligibleHeroCount = len(allHeroes)
 
 		// how many owned
 		count := 0

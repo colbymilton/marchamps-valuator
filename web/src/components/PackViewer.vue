@@ -19,7 +19,6 @@
     import PackView from '@/components/PackView.vue'
     import CardView from '@/components/CardView.vue'
     import { useAppStore } from '@/store/app';
-    import { reactive } from 'vue';
 
     const store = useAppStore();
 </script>

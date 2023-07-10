@@ -12,8 +12,8 @@ import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 
 // colors: {
-//   background ,
-//   surface ,
+//   background: ,
+//   surface: ,
 //   primary: ,
 //   secondary: ,
 //   accent: ,
