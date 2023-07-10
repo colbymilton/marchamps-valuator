@@ -1,8 +1,10 @@
 <template>
-    <v-card :key="props.cardValue.code" :title="props.cardValue.card.name" class="pb-4 mb-4 flex-grow-1" @click="openCard" :color="getColor()">
-        <v-tooltip activator="parent" location="top">{{ props.cardValue.card.name }}</v-tooltip>
-        <v-card-item class="pt-0 mt-n3">{{ props.cardValue.card.subname }}</v-card-item>
-        <v-spacer/>
+    <v-card :key="props.cardValue.code" class="mb-4 pb-3 flex-grow-1" @click="openCard" :color="getColor()">
+        <v-tooltip activator="parent" location="right">
+            <v-img :src="getImgURL" height="300" lazy-src="@/assets/marvel-player-back.png" transition="slide-x-transition" @error="onImgFail()"/>
+        </v-tooltip>
+        <v-card-title>{{ props.cardValue.card.name }}</v-card-title>
+        <v-card-item class="pt-0 mt-n2">{{ props.cardValue.card.subname }}</v-card-item>
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.cardValue.value }}</b>
         </v-card-item>
@@ -12,11 +14,22 @@
 </template>
 
 <script setup>
-    const props = defineProps(['cardValue'])
+    import { ref, computed } from 'vue'
+
+    const imgFailed = ref(false);
+    const props = defineProps(['cardValue']);
 
     function openCard() {
-        window.open("https://marvelcdb.com/card/" + props.cardValue.code)
+        window.open("https://marvelcdb.com/card/" + props.cardValue.code);
     }
+
+    function onImgFail() {
+        imgFailed.value = true;
+    }
+
+    const getImgURL = computed(() => {
+        return imgFailed.value ? "src/assets/marvel-player-back-not-found.png" : "https://marvelcdb.com/bundles/cards/" + props.cardValue.code + ".png";
+    });
 
     function getColor() {
         if (props.cardValue.card.aspect == "basic") {
