@@ -458,6 +458,11 @@ func (v *Valuator) updatePackValues() error {
 			return err
 		}
 
+		// skip "empty" packs (likely scenario packs)
+		if len(packCards) == 0 {
+			continue
+		}
+
 		// get card values for those cards
 		cardCodes := make([]string, len(packCards))
 		for i, pCard := range packCards {

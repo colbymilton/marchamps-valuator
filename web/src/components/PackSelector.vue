@@ -30,7 +30,7 @@
     import { reactive, ref } from 'vue';
 
     const expand = ref(true);
-    const store = reactive(useAppStore());
+    const store = useAppStore();
     const loading = ref(false);
 
     async function getValues() {

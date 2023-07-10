@@ -12,7 +12,7 @@
     import { reactive } from 'vue';
 
     const props = defineProps(['packValue'])
-    const store = reactive(useAppStore());
+    const store = useAppStore();
 
     async function selectPack() {
         store.selectedPack = props.packValue;
