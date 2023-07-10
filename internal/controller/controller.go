@@ -231,6 +231,7 @@ func (v *Valuator) updateCards() error {
 			DuplicateBy:   []string{},
 			Text:          mCard.Text,
 			CardSetName:   mCard.CardSetName,
+			ImageSrc:      mCard.ImageSrc,
 		}
 
 		if mCard.LinkedCard != nil {

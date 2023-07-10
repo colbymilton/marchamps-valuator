@@ -54,6 +54,7 @@ type Card struct {
 	Text        string   `json:"text"`
 	CardSetName string   `json:"card_set_name"`
 	LinkedCard  *Card    `json:"linked_card"`
+	ImageSrc    string   `json:"imagesrc"`
 }
 
 type Pack struct {

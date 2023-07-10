@@ -25,6 +25,7 @@ type Card struct {
 	Text           string    `json:"text"`
 	CardSetName    string    `json:"cardSetName"`
 	LinkedCardCode string    `json:"linkedCard"`
+	ImageSrc       string    `json:"imageSource"`
 }
 
 type CardValue struct {

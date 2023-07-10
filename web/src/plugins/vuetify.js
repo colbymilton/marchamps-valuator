@@ -58,6 +58,7 @@ export default createVuetify({
       scarletWitch: {
         dark: true,
         colors: {
+            background: '#210101',
             primary: '#E50719',
             secondary: '#B91444',
             accent: '#D60B54',
@@ -66,6 +67,7 @@ export default createVuetify({
       loki: {
         dark: true,
         colors: {
+            background: '#011207',
             primary: '#008D39',
             secondary: '#016634',
             accent: '#F3D301',

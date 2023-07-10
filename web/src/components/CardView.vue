@@ -28,7 +28,7 @@
     }
 
     const getImgURL = computed(() => {
-        return imgFailed.value ? "src/assets/marvel-player-back-not-found.png" : "https://marvelcdb.com/bundles/cards/" + props.cardValue.code + ".png";
+        return imgFailed.value ? "src/assets/marvel-player-back-not-found.png" : "https://marvelcdb.com/" + props.cardValue.card.imageSource;
     });
 
     function getColor() {
