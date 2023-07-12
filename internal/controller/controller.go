@@ -82,7 +82,7 @@ func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
 
 	// modify base pack values based on owned cards
 	for _, cv := range cvs {
-		adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, "")
+		adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, "", map[string]float64{})
 	}
 
 	sort.Slice(cvs, func(i, j int) bool { return cvs[i].Value > cvs[j].Value })
@@ -91,7 +91,7 @@ func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
 }
 
 // ValueAllPacks handles the /pack_values endpoint
-func (v *Valuator) ValueAllPacks(owned []string) ([]*PackValue, error) {
+func (v *Valuator) ValueAllPacks(owned []string, aspectWeights map[string]float64) ([]*PackValue, error) {
 	// grab base pack values from db
 	pvs, err := mw.GetMany[PackValue](v.db, cPackValues, mw.BsonNoneD, mw.BsonNoneM)
 	if err != nil {
@@ -121,7 +121,7 @@ func (v *Valuator) ValueAllPacks(owned []string) ([]*PackValue, error) {
 	// modify base pack values based on owned cards
 	for _, pv := range pvs {
 		for _, cv := range pv.CardValues {
-			adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, pv.Code)
+			adjustCardValue(cv, ownedCards, ownedHeroes, allHeroes, pv.Code, aspectWeights)
 		}
 		sort.Slice(pv.CardValues, func(i, j int) bool { return pv.CardValues[i].Value > pv.CardValues[j].Value })
 		pv.Calculate()
@@ -400,9 +400,10 @@ func (v *Valuator) updateCardValues() error {
 	cardValues := []*CardValue{}
 	for _, card := range allCards {
 		cardValue := &CardValue{
-			Code:   card.Code,
-			Card:   card,
-			NewMod: 1,
+			Code:      card.Code,
+			Card:      card,
+			NewMod:    1,
+			WeightMod: 1,
 		}
 
 		for _, deck := range allDecks {
@@ -556,10 +557,15 @@ func isCardEligibleForDeck(card *Card, deck *marvel.Decklist, hero *Hero) bool {
 	return true
 }
 
-func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map[string]*Hero, allHeroes []*Hero, packCode string) {
+func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map[string]*Hero, allHeroes []*Hero, packCode string, aspectWeights map[string]float64) {
 	// owned cards
 	if _, ok := ownedCards[cv.Code]; ok {
 		cv.NewMod = 0
+	}
+
+	// aspect weight
+	if weight, ok := aspectWeights[cv.Card.Aspect]; ok {
+		cv.WeightMod = weight
 	}
 
 	// trait-locked cards
@@ -578,7 +584,7 @@ func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map
 				}
 			}
 		}
-		cv.EligibleHeroCount = len(allHeroes)
+		cv.EligibleHeroCount = len(ownedHeroes)
 
 		// how many owned
 		count := 0

@@ -39,6 +39,7 @@ type CardValue struct {
 	TraitMod           float64 `json:"traitMod"`
 	EligibleHeroCount  int     `json:"eligibleHeroCount"`
 	OwnedHeroCount     int     `json:"ownedHeroCount"`
+	WeightMod          float64 `json:"weightMod"`
 }
 
 func (cv *CardValue) Calculate() {
@@ -50,7 +51,7 @@ func (cv *CardValue) Calculate() {
 	if cv.EligibleHeroCount > 0 {
 		cv.TraitMod = float64(cv.OwnedHeroCount) / float64(cv.EligibleHeroCount)
 	}
-	cv.Value = int(math.Round(100 * cv.NewMod * cv.PopularityMod * cv.TraitMod))
+	cv.Value = int(math.Round(100 * cv.NewMod * cv.PopularityMod * cv.TraitMod * cv.WeightMod))
 }
 
 type PackValue struct {

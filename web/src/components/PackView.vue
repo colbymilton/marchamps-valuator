@@ -3,12 +3,13 @@
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.packValue.valueSum }}</b>
         </v-card-item>
-        <v-chip>New cards: {{ countNew() }}</v-chip>
+        <v-chip>New cards: {{ countNew }}</v-chip>
     </v-card>
 </template>
 
 <script setup>
     import { useAppStore } from '@/store/app';
+    import { computed } from 'vue';
 
     const props = defineProps(['packValue']);
     const store = useAppStore();
@@ -18,7 +19,7 @@
         window.scrollTo(0, 0);
     }
 
-    function countNew() {
+    const countNew = computed(() => {
         let count = 0;
         for (let i = 0; i < props.packValue.cardValues.length; i++) {
             let cv = props.packValue.cardValues[i];
@@ -27,6 +28,6 @@
             }
         }
         return count;
-    }
+    });
 
 </script>

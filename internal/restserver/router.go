@@ -2,6 +2,7 @@ package restserver
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/colbymilton/marchamps-valuator/internal/controller"
@@ -60,8 +61,47 @@ func (s *Server) GetPacks(c *gin.Context) {
 
 func (s *Server) GetAllPackValues(c *gin.Context) {
 	ownedStr := c.Query("owned")
+
+	aspectWeights := make(map[string]float64)
+	if aggressionWeight := c.Query("aw"); aggressionWeight != "" {
+		f, err := strconv.ParseFloat(aggressionWeight, 64)
+		if err != nil {
+			respond(c, nil, err)
+			return
+		}
+
+		aspectWeights["aggression"] = f
+	}
+	if protectionWeight := c.Query("pw"); protectionWeight != "" {
+		f, err := strconv.ParseFloat(protectionWeight, 64)
+		if err != nil {
+			respond(c, nil, err)
+			return
+		}
+
+		aspectWeights["protection"] = f
+	}
+	if leadershipWeight := c.Query("lw"); leadershipWeight != "" {
+		f, err := strconv.ParseFloat(leadershipWeight, 64)
+		if err != nil {
+			respond(c, nil, err)
+			return
+		}
+
+		aspectWeights["leadership"] = f
+	}
+	if justiceWeight := c.Query("jw"); justiceWeight != "" {
+		f, err := strconv.ParseFloat(justiceWeight, 64)
+		if err != nil {
+			respond(c, nil, err)
+			return
+		}
+
+		aspectWeights["justice"] = f
+	}
+
 	owned := strings.Split(ownedStr, ",")
-	b, err := s.ctrl.ValueAllPacks(owned)
+	b, err := s.ctrl.ValueAllPacks(owned, aspectWeights)
 	respond(c, b, err)
 }
 

@@ -8,8 +8,10 @@
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.cardValue.value }}</b>
         </v-card-item>
+        <v-chip v-if="props.cardValue.newMod == 0">Owned</v-chip>
         <v-chip>Popularity Mod: {{ props.cardValue.popularityMod.toFixed(3) }}</v-chip>
-        <v-chip v-if="props.cardValue.eligibleHeroCount != 0">{{ getLockingTraits() }} Mod: {{ props.cardValue.traitMod.toFixed(3) }}</v-chip> 
+        <v-chip v-if="props.cardValue.eligibleHeroCount != 0">{{ getLockingTraits() }} Mod: {{ props.cardValue.traitMod.toFixed(3) }}</v-chip>
+        <v-chip v-if="props.cardValue.weightMod != 1">Weight Mod: {{ props.cardValue.weightMod.toFixed(2) }}</v-chip> 
     </v-card>
 </template>
 
