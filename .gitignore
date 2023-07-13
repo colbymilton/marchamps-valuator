@@ -26,3 +26,4 @@
 /web/node_modules
 /web/.vscode
 .vscode
+/_build

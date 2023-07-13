@@ -38,7 +38,8 @@ func NewValuator() *Valuator {
 		log.Fatalln(err)
 	}
 	v.mCli = mcli
-	mongoConnStr := fmt.Sprintf("mongodb://%v:%v", os.Getenv("MONGO_ADDRESS"), os.Getenv("MONGO_PORT"))
+	mongoConnStr := fmt.Sprintf("mongodb://%v:%v@%v:%v", os.Getenv("MONGO_INITDB_ROOT_USERNAME"), os.Getenv("MONGO_INITDB_ROOT_PASSWORD"),
+		os.Getenv("MONGO_ADDRESS"), os.Getenv("MONGO_PORT"))
 	v.db = mw.NewMongoDB(mongoConnStr, "marchamps-valuator")
 
 	if os.Getenv("DELETE_ALL_ON_STARTUP") == "true" {
@@ -161,7 +162,7 @@ func (v *Valuator) Update() error {
 	}
 
 	// update card values
-	if decksAdded || true { // todo remove true
+	if true { // todo remove true
 		if err := v.updateCardValues(); err != nil {
 			return err
 		}
