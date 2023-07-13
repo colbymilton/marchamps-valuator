@@ -26,9 +26,6 @@ func Run() {
 
 	// init controller
 	server.ctrl = controller.NewValuator()
-	if err := server.ctrl.Update(); err != nil {
-		panic(err)
-	}
 
 	// init router
 	router := gin.Default()

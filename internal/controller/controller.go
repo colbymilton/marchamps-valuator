@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	marvel "github.com/colbymilton/marchamps-valuator/internal/marvelcdb"
@@ -22,12 +23,15 @@ const (
 	cHeroes     = "heroes"
 	cCardValues = "card-values"
 	cPackValues = "pack-values"
+	cUpdateFreq = time.Hour * 12
 )
 
 type Valuator struct {
-	mCli  *marvel.MarvelClient
-	db    *mw.MongoDB
-	cards map[string]*Card
+	mCli        *marvel.MarvelClient
+	db          *mw.MongoDB
+	cards       map[string]*Card
+	lastUpdated time.Time
+	mutex       sync.Mutex
 }
 
 func NewValuator() *Valuator {
@@ -38,16 +42,17 @@ func NewValuator() *Valuator {
 		log.Fatalln(err)
 	}
 	v.mCli = mcli
+
 	mongoConnStr := fmt.Sprintf("mongodb://%v:%v@%v:%v", os.Getenv("MONGO_INITDB_ROOT_USERNAME"), os.Getenv("MONGO_INITDB_ROOT_PASSWORD"),
 		os.Getenv("MONGO_ADDRESS"), os.Getenv("MONGO_PORT"))
 	v.db = mw.NewMongoDB(mongoConnStr, "marchamps-valuator")
 
 	if os.Getenv("DELETE_ALL_ON_STARTUP") == "true" {
-		mw.EmptyCollection(v.db, cCards)
-		mw.EmptyCollection(v.db, cPacks)
-		mw.EmptyCollection(v.db, cHeroes)
-		mw.EmptyCollection(v.db, cCardValues)
-		mw.EmptyCollection(v.db, cPackValues)
+		v.db.EmptyCollection(cCards)
+		v.db.EmptyCollection(cPacks)
+		v.db.EmptyCollection(cHeroes)
+		v.db.EmptyCollection(cCardValues)
+		v.db.EmptyCollection(cPackValues)
 	}
 
 	return v
@@ -55,6 +60,10 @@ func NewValuator() *Valuator {
 
 // ValueAllCards handles the /card_values endpoint
 func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
+	if err := v.updateIfNeeded(); err != nil {
+		return nil, err
+	}
+
 	// grab base card values from db
 	cvs, err := mw.GetMany[CardValue](v.db, cCardValues, mw.BsonNoneD, mw.BsonNoneM)
 	if err != nil {
@@ -93,6 +102,10 @@ func (v *Valuator) ValueAllCards(owned []string) ([]*CardValue, error) {
 
 // ValueAllPacks handles the /pack_values endpoint
 func (v *Valuator) ValueAllPacks(owned []string, aspectWeights map[string]float64) ([]*PackValue, error) {
+	if err := v.updateIfNeeded(); err != nil {
+		return nil, err
+	}
+
 	// grab base pack values from db
 	pvs, err := mw.GetMany[PackValue](v.db, cPackValues, mw.BsonNoneD, mw.BsonNoneM)
 	if err != nil {
@@ -135,11 +148,26 @@ func (v *Valuator) ValueAllPacks(owned []string, aspectWeights map[string]float6
 
 // GetPacks handles the /packs endpoint
 func (v *Valuator) GetPacks() ([]*marvel.Pack, error) {
+	if err := v.updateIfNeeded(); err != nil {
+		return nil, err
+	}
 	return mw.GetMany[marvel.Pack](v.db, cPacks, mw.BsonNoneD, bson.M{"availablestr": 1})
 }
 
 // Update is called on start up
-func (v *Valuator) Update() error {
+func (v *Valuator) updateIfNeeded() error {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	if v.lastUpdated.Add(cUpdateFreq).After(time.Now()) {
+		return nil
+	}
+
+	// check mongo first, just to save a marvel endpoint call
+	if err := v.db.Ping(); err != nil {
+		return err
+	}
+
 	// update packs
 	if err := v.updatePacks(); err != nil {
 		return err
@@ -175,6 +203,7 @@ func (v *Valuator) Update() error {
 		}
 	}
 
+	v.lastUpdated = time.Now()
 	return nil
 }
 

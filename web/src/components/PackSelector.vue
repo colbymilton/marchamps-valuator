@@ -13,7 +13,8 @@
                 <div>
                     <v-label class="text-h6">Owned Packs</v-label>
                 </div>
-                <v-row dense class="pa-5" justify="center">
+                <v-progress-circular v-if="loadingPacks" indeterminate class="my-3"/>
+                <v-row v-if="!loadingPacks" dense class="pa-5" justify="center">
                     <v-col v-for="pack in store.packs" cols="12" sm="4" lg="2">
                         <div :key="pack.code" class="pa-0 mx-3 my-n6">
                             <v-checkbox :label="pack.name" v-model="pack.owned" :disabled="pack.locked" class="black"/>
@@ -44,7 +45,7 @@
                     </v-row>
                 </div>
                 -->
-                <v-btn ripple color="secondary" :loading="loading" @click="getValues">Get Values</v-btn>
+                <v-btn ripple color="secondary" :loading="loadingValues" @click="getValues">Get Values</v-btn>
             </div>
         </v-expand-transition>
 
@@ -57,8 +58,9 @@
     import { ref, reactive } from 'vue';
 
     const store = useAppStore();
-    const loading = ref(false);
 
+    const loadingValues = ref(false);
+    const loadingPacks = ref(true);
     const expandOptions = ref(true);
 
     const weights = reactive([
@@ -87,8 +89,32 @@
     const includeCampaigns = ref(true);
     const includeHeroes = ref(true);
 
+    // load packs
+    fetch('http://localhost:9999/packs')
+        .then(async response => {
+            const data = await response.json();
+            if (response.ok) {
+                store.packs = data;
+                for (let i = 0; i < store.packs.length; i++) {
+                    let pack = store.packs[i];
+                    if (pack.code == "core") {
+                        pack.owned = true;
+                        pack.locked = true;
+                    }
+                }
+            } else {
+                store.error = data.error;
+            }
+        })
+        .catch(error => {
+            store.error = error;
+        })
+        .finally(() => {
+            loadingPacks.value = false;
+        });
+
     async function getValues() {
-        loading.value = true;
+        loadingValues.value = true;
         let s = store.packsString();
 
         // get weights
@@ -98,12 +124,23 @@
             weightStr += "&" + weight.code + "=" + weight.weight;
         }
 
-        const result = await fetch('http://localhost:9999/pack_values?owned=' + s + weightStr);
-        const data = await result.json();
-        store.packValues = data;
-        store.selectedPack = store.packValues[0];
-        loading.value = false;
-        expandOptions.value = false;
+        fetch('http://localhost:9999/pack_values?owned=' + s + weightStr)
+            .then(async response => {
+                const data = await response.json();
+                if (response.ok) {
+                    store.packValues = data;
+                    store.selectedPack = store.packValues[0];
+                    expandOptions.value = false;
+                } else {
+                    store.error = data.error;
+                }
+            })
+            .catch(error => {
+                store.error = error;
+            })
+            .finally(() => {
+                loadingValues.value = false;
+            });        
     };
 
     function getColor(aspect) {

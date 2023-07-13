@@ -9,11 +9,15 @@
     "lint": "eslint . --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@bundled-es-modules/axios": "^0.27.2",
     "@mdi/font": "7.0.96",
+    "axios": "^1.4.0",
     "core-js": "^3.29.0",
     "pinia": "^2.0.0",
+    "redaxios": "^0.5.1",
     "roboto-fontface": "*",
     "vue": "^3.2.0",
+    "vue-axios": "^3.5.2",
     "vue-router": "^4.0.0",
     "vuetify": "^3.0.0",
     "webfontloader": "^1.0.0"

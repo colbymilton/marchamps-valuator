@@ -20,8 +20,8 @@ func NewClient() (*MarvelClient, error) {
 }
 
 func (mcli *MarvelClient) get(endpoint string, body any) error {
+	log.Println("sending:", baseAddr+endpoint)
 	resp, err := sling.New().Get(baseAddr + endpoint).ReceiveSuccess(body)
-	log.Println("sending:", resp.Request.URL)
 	if err != nil {
 		return err
 	}
