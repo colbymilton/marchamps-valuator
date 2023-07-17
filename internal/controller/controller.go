@@ -43,8 +43,7 @@ func NewValuator() *Valuator {
 	}
 	v.mCli = mcli
 
-	mongoConnStr := fmt.Sprintf("mongodb://%v:%v@%v:%v", os.Getenv("MONGO_INITDB_ROOT_USERNAME"), os.Getenv("MONGO_INITDB_ROOT_PASSWORD"),
-		os.Getenv("MONGO_ADDRESS"), os.Getenv("MONGO_PORT"))
+	mongoConnStr := os.Getenv("MONGO_CONN_STRING")
 	v.db = mw.NewMongoDB(mongoConnStr, "marchamps-valuator")
 
 	if os.Getenv("DELETE_ALL_ON_STARTUP") == "true" {

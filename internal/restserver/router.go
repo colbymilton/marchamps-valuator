@@ -33,7 +33,7 @@ func Run() {
 
 	// CORS
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowOrigins = []string{"*"}
 	router.Use(cors.New(config))
 
 	router.GET("/packs", server.GetPacks)

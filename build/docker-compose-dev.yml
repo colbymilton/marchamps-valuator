@@ -17,8 +17,6 @@ services:
     image: marchamps-val-backend
     volumes:
     - ./..:/app
-    env_file:
-      - ../.env
     ports:
       - "9999:9999"
     depends_on:
@@ -31,7 +29,7 @@ services:
     #restart: always
     volumes:
     - ./../web:/app
-    - /app/node_modules/
+    - node_modules:/app/node_modules/
     env_file:
       - ../.env
     ports:
@@ -41,3 +39,4 @@ services:
 
 volumes:
     db_data:
+    node_modules:

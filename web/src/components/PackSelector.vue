@@ -90,7 +90,7 @@
     const includeHeroes = ref(true);
 
     // load packs
-    fetch('http://localhost:9999/packs')
+    fetch(import.meta.env.VITE_BACKEND_ADDRESS + '/packs')
         .then(async response => {
             const data = await response.json();
             if (response.ok) {
@@ -124,7 +124,7 @@
             weightStr += "&" + weight.code + "=" + weight.weight;
         }
 
-        fetch('http://localhost:9999/pack_values?owned=' + s + weightStr)
+        fetch(import.meta.env.VITE_BACKEND_ADDRESS + '/pack_values?owned=' + s + weightStr)
             .then(async response => {
                 const data = await response.json();
                 if (response.ok) {
