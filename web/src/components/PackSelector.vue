@@ -30,8 +30,8 @@
                     <v-row class="mx-6 mt-1">
                         <v-col cols="12" md="6" v-for="weight in weights">
                             <v-row>
-                                <v-col cols="2"><v-label class="mt-1">{{ weight.aspect }}</v-label></v-col>
-                                <v-col cols="10"><v-slider min="0" max="1" show-ticks step="0.05" thumb-label v-model="weight.weight" :color="getColor(weight.aspect)"/></v-col>
+                                <v-col cols="3"><v-label class="mt-1">{{ weight.aspect }}</v-label></v-col>
+                                <v-col cols="9"><v-slider min="0" max="1" show-ticks step="0.05" thumb-label v-model="weight.weight" :color="getColor(weight.aspect)"/></v-col>
                             </v-row>
                         </v-col>
                     </v-row>
@@ -140,6 +140,7 @@
             })
             .finally(() => {
                 loadingValues.value = false;
+                window.scrollTo(0, 0);
             });        
     };
 

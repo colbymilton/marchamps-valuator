@@ -3,7 +3,7 @@
         <v-tooltip activator="parent" location="right">
             <v-img :src="getImgURL" height="300" lazy-src="@/assets/marvel-player-back.png" transition="slide-x-transition" @error="onImgFail()"/>
         </v-tooltip>
-        <v-card-title>{{ props.cardValue.card.name }}</v-card-title>
+        <v-card-title class="text-wrap">{{ props.cardValue.card.name }}</v-card-title>
         <v-card-item class="pt-0 mt-n2">{{ props.cardValue.card.subname }}</v-card-item>
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.cardValue.value }}</b>

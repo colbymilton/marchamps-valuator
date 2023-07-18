@@ -1,5 +1,7 @@
 <template>
-    <v-card :key="props.packValue.code" :title="props.packValue.pack.name" :color="props.packValue.code == store.selectedPack.code? 'accent' : ''" class="mb-4 pb-4"  @click="selectPack">
+    <v-card :key="props.packValue.code" class="mb-4 pb-4"
+    :color="props.packValue.code == store.selectedPack.code? 'accent' : ''" @click="selectPack">
+        <v-card-title class="mx-n3 text-wrap">{{ props.packValue.pack.name }}</v-card-title>
         <v-card-item class="mt-n3 text-h5">
             <b>{{ props.packValue.valueSum }}</b>
         </v-card-item>

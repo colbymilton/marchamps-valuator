@@ -4,7 +4,6 @@
       <v-icon icon="mdi-cards" />
       Marvel Champions Pack Valuator!
     </v-app-bar-title>
-    <v-spacer/>
     <theme-selector/>
   </v-app-bar>
 </template>
