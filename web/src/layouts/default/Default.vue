@@ -4,7 +4,10 @@
 
     <default-view />
 
-    <default-footer />
+    <v-spacer/>
+    <v-spacer/>
+    <v-spacer/>
+    <default-footer/>
   </v-app>
 </template>
 
