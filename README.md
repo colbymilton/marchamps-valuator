@@ -23,13 +23,13 @@ Every card is valued at 100 points by default. There are then multipliers added 
 | Evaluated | Mod | Example | Implemented? |
 | --- | --- | --- | --- |
 | Already Owned | ×1 or ×0 | Cards you already own are worth 0 points. | Yes |
-| Popularity in Eligable Decks* | ×1 -> ×2 | If a card is included in 25% of all eligable decks, it will have a ×1.25 modifier. | Yes |
+| Popularity in Eligable Decks* | ×1 -> ×2 | If a card is included in 25% of all eligible decks, it will have a ×1.25 modifier. | Yes |
 | How Many Heroes Match Trait | ×0 -> ×1 | If a card is trait-locked** and 6 out of your 10 owned heroes have that trait, it will have a ×0.6 modifier. | Yes |
 | Aspect Weights | ×0 -> ×1 | If the user specifies a 0.5 weight for leadership cards, then all leadership cards will have a ×0.5 modifier. | Yes |
 
-\* An eligable deck is defined as "a deck that could feasibly include the card":
-- The deck must be running the appropriate aspect (a protection card is not eligable in an aggression deck).
-- The deck must have been updated since the release of the card (a card from Wolverine's pack is not eligable in a deck from 2020).
-- For trait-locked cards, the deck must be for a hero that has or can reasonably acquire the specifed trait (Dive Bomb can only be played if your identity has the aerial trait and thus is not eligable in Captain America decks, but is eligable with Spectrum, Dr. Strange, Nova, etc.)
+\* An eligible deck is defined as "a deck that could feasibly include the card":
+- The deck must be running the appropriate aspect (a protection card is not eligible in an aggression deck).
+- The deck must have been updated since the release of the card (a card from Wolverine's pack which released in 2022 is not eligible in a deck from 2020).
+- For trait-locked cards, the deck must be for a hero that has or can reasonably acquire the specifed trait (Dive Bomb can only be played if your identity has the aerial trait and thus is not eligible in Captain America decks, but is eligible with Spectrum, Dr. Strange, Nova, etc.)
 
 \*\* A trait-locked card is a card that can only be played if your identity has a specific trait. Dive Bomb requires aerial, The Sorcerer Supreme requires Mystic, etc.

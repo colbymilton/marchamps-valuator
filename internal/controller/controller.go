@@ -589,7 +589,7 @@ func (v *Valuator) getUniqueCards() []*Card {
 }
 
 func isCardEligibleForDeck(card *Card, deck *marvel.Decklist, hero *Hero) bool {
-	// not eligable if the deck was made before the card released
+	// not eligible if the deck was made before the card released
 	if deck.DateUpdated().Before(card.DateAvailable) {
 		return false
 	}
