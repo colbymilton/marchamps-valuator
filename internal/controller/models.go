@@ -11,6 +11,11 @@ import (
 	"github.com/colbymilton/marchamps-valuator/internal/utils"
 )
 
+type Meta struct {
+	Id          int `bson:"_id"`
+	LastUpdated time.Time
+}
+
 type Card struct {
 	Code           string    `json:"code" bson:"_id"`
 	Name           string    `json:"name"`

@@ -23,15 +23,18 @@ const (
 	cHeroes     = "heroes"
 	cCardValues = "card-values"
 	cPackValues = "pack-values"
+	cMeta       = "meta"
+
+	cMetaId     = 1
 	cUpdateFreq = time.Hour * 12
 )
 
 type Valuator struct {
-	mCli        *marvel.MarvelClient
-	db          *mw.MongoDB
-	cards       map[string]*Card
-	lastUpdated time.Time
-	mutex       sync.Mutex
+	mCli *marvel.MarvelClient
+	db   *mw.MongoDB
+
+	cards map[string]*Card
+	mutex sync.Mutex
 }
 
 func NewValuator() *Valuator {
@@ -153,15 +156,43 @@ func (v *Valuator) GetPacks() ([]*marvel.Pack, error) {
 	return mw.GetMany[marvel.Pack](v.db, cPacks, mw.BsonNoneD, bson.M{"availablestr": 1})
 }
 
-// Update is called on start up
 func (v *Valuator) updateIfNeeded() error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	if v.lastUpdated.Add(cUpdateFreq).After(time.Now()) {
+	// add meta data (if it already exists, this will be ignored)
+	if err := mw.CreateMany[Meta](v.db, cMeta, []*Meta{{Id: cMetaId, LastUpdated: time.Time{}}}); err != nil {
+		return err
+	}
+
+	// get meta data from db
+	meta, err := mw.GetOne[Meta](v.db, cMeta, mw.BuildEqualsFilter("_id", cMetaId), mw.BsonNoneM)
+	if err != nil {
+		return err
+	}
+
+	setup := meta.LastUpdated.IsZero()
+	needsUpdated := meta.LastUpdated.Add(cUpdateFreq).Before(time.Now())
+
+	if setup {
+		// since this is a first-time setup, we need to block until the database has been initialized
+		return v.updateAll()
+
+	} else if needsUpdated {
+		// since we already have some data, we can do the update in the background
+		go func() {
+			if err := v.updateAll(); err != nil {
+				log.Println("error when updating in the background:", err)
+			}
+		}()
 		return nil
 	}
 
+	// doesn't need to be updated at all
+	return nil
+}
+
+func (v *Valuator) updateAll() error {
 	// check mongo first, just to save a marvel endpoint call
 	if err := v.db.Ping(); err != nil {
 		return err
@@ -202,8 +233,8 @@ func (v *Valuator) updateIfNeeded() error {
 		}
 	}
 
-	v.lastUpdated = time.Now()
-	return nil
+	// update lastUpdated time
+	return mw.ReplaceOneID[Meta](v.db, cMeta, &Meta{Id: cMetaId, LastUpdated: time.Now()})
 }
 
 func (v *Valuator) updatePacks() error {

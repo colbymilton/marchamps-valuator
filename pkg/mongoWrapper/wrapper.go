@@ -2,7 +2,10 @@ package mongoWrapper
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"reflect"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,6 +37,27 @@ func defaultContext() context.Context {
 	return ctx
 }
 
+func findBsonField(thing interface{}, fieldName string) (interface{}, error) {
+	rv := reflect.ValueOf(thing)
+	rt := reflect.TypeOf(thing)
+	if rv.Kind() == reflect.Pointer {
+		rv = rv.Elem()
+		rt = rt.Elem()
+	}
+	if rv.Kind() == reflect.Struct {
+		for i := 0; i < rv.NumField(); i++ {
+			fv := rv.Field(i)
+			ft := rt.Field(i)
+
+			if strings.Contains(string(ft.Tag), "bson:\""+fieldName+"\"") {
+				return fv.Interface(), nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("could not find the %v field", fieldName)
+}
+
 func (mdb *MongoDB) Ping() error {
 	return mdb.db.Client().Ping(defaultContext(), nil)
 }
@@ -55,7 +79,7 @@ func (mdb *MongoDB) GetCollectionSize(coll string) int {
 	}
 }
 
-// CreateMany with insert multiple documents into the database
+// CreateMany will insert multiple documents into the database
 // if a document with a matching "_id" already exists, it is ignored
 func CreateMany[T any](mdb *MongoDB, coll string, things []*T) error {
 	collection := mdb.db.Collection(coll)
@@ -68,6 +92,26 @@ func CreateMany[T any](mdb *MongoDB, coll string, things []*T) error {
 	}
 
 	return nil
+}
+
+// ReplaceOne will replace a document in the database that has a matching "_id"
+func ReplaceOne[T any](mdb *MongoDB, coll string, filter bson.D, thing *T) error {
+	collection := mdb.db.Collection(coll)
+
+	_, err := collection.ReplaceOne(defaultContext(), filter, thing)
+	return err
+}
+
+// ReplaceOne will replace a document in the database that has a matching "_id"
+func ReplaceOneID[T any](mdb *MongoDB, coll string, thing *T) error {
+	id, err := findBsonField(thing, "_id")
+	if err != nil {
+		return err
+	}
+
+	filter := BuildEqualsFilter("_id", id)
+
+	return ReplaceOne[T](mdb, coll, filter, thing)
 }
 
 // GetMany returns a slice of T objects that
