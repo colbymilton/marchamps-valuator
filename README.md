@@ -23,7 +23,7 @@ Every card is valued at 100 points by default. There are then multipliers added 
 | Evaluated | Mod | Example | Implemented? |
 | --- | --- | --- | --- |
 | Already Owned | ×1 or ×0 | Cards you already own are worth 0 points. | Yes |
-| Popularity in Eligable Decks* | ×1 -> ×2 | If a card is included in 25% of all eligible decks, it will have a ×1.25 modifier. | Yes |
+| Popularity in Eligible Decks* | ×1 -> ×2 | If a card is included in 25% of all eligible decks, it will have a ×1.25 modifier. | Yes |
 | How Many Heroes Match Trait | ×0 -> ×1 | If a card is trait-locked** and 6 out of your 10 owned heroes have that trait, it will have a ×0.6 modifier. | Yes |
 | Aspect Weights | ×0 -> ×1 | If the user specifies a 0.5 weight for leadership cards, then all leadership cards will have a ×0.5 modifier. | Yes |
 
