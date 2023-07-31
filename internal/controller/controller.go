@@ -26,7 +26,7 @@ const (
 	cMeta       = "meta"
 
 	cMetaId     = 1
-	cUpdateFreq = time.Hour * 12
+	cUpdateFreq = time.Second * 6
 )
 
 type Valuator struct {
@@ -220,14 +220,14 @@ func (v *Valuator) updateAll() error {
 	}
 
 	// update card values
-	if true { // todo remove true
+	if decksAdded {
 		if err := v.updateCardValues(); err != nil {
 			return err
 		}
 	}
 
 	// update pack values
-	if decksAdded || true { // todo remove true
+	if decksAdded {
 		if err := v.updatePackValues(); err != nil {
 			return err
 		}
@@ -399,7 +399,7 @@ func (v *Valuator) updateDecks() (isNewDecks bool, err error) {
 		return false, err
 	}
 	if deck != nil {
-		latestTime = deck.DateCreated().Add(time.Hour * 24)
+		latestTime = deck.DateCreated()
 	}
 
 	// get decks since latest time
@@ -415,12 +415,17 @@ func (v *Valuator) updateDecks() (isNewDecks bool, err error) {
 				return false, err
 			}
 		}
-		log.Println("Adding more decks:", len(decks))
+		log.Printf("Received %v decks for %v\n", len(decks), latestTime.Format("2006-01-02"))
 
 		if len(decks) > 0 {
-			isNewDecks = true
+			oldCount := v.db.GetCollectionSize(cDecks)
 			if err := mw.CreateMany(v.db, cDecks, decks); err != nil {
 				return false, err
+			}
+			newCount := v.db.GetCollectionSize(cDecks)
+			log.Printf("Added %v new decks\n", newCount-oldCount)
+			if oldCount != newCount {
+				isNewDecks = true
 			}
 		}
 
@@ -499,7 +504,7 @@ func (v *Valuator) updateCardValues() error {
 
 	// defer log.Println("Local card values count:", mw.GetCollectionSize(v.db, cCardValues))
 
-	return mw.CreateMany(v.db, cCardValues, cardValues)
+	return mw.ReplaceManyID(v.db, cCardValues, cardValues)
 }
 
 func (v *Valuator) updatePackValues() error {
@@ -548,7 +553,7 @@ func (v *Valuator) updatePackValues() error {
 
 	// defer log.Println("Local pack values count:", mw.GetCollectionSize(v.db, cPackValues))
 
-	return mw.CreateMany(v.db, cPackValues, packValues)
+	return mw.ReplaceManyID(v.db, cPackValues, packValues)
 }
 
 func (v *Valuator) getCardsFromPack(packCode string) ([]*Card, error) {
@@ -630,32 +635,35 @@ func adjustCardValue(cv *CardValue, ownedCards map[string]*Card, ownedHeroes map
 
 	// trait-locked cards
 	if cv.Card.LockingTraits != nil && len(cv.Card.LockingTraits) > 0 {
-		// how many total heroes are there
+		// heroes in this pack
 		packHeroes := map[string]*Hero{}
-		traitedHeroes := []*Hero{}
 		for _, hero := range allHeroes {
+			if hero.PackCode == packCode {
+				packHeroes[hero.Code] = hero
+			}
+		}
+
+		// heroes you own after getting this pack
+		futureOwned := map[string]*Hero{}
+		for _, ownedHero := range ownedHeroes {
+			futureOwned[ownedHero.Code] = ownedHero
+		}
+		for _, packHero := range packHeroes {
+			futureOwned[packHero.Code] = packHero
+		}
+
+		cv.EligibleHeroCount = len(futureOwned)
+
+		// how many of your heroes have the trait?
+		cv.OwnedHeroCount = 0
+		for _, hero := range futureOwned {
 			for _, trait := range cv.Card.LockingTraits {
-				if hero.PackCode == packCode {
-					packHeroes[hero.Code] = hero
-				}
 				if utils.StringsContains(hero.Traits, trait) {
-					traitedHeroes = append(traitedHeroes, hero)
+					cv.OwnedHeroCount++
 					break
 				}
 			}
 		}
-		cv.EligibleHeroCount = len(ownedHeroes)
-
-		// how many owned
-		count := 0
-		for _, hero := range traitedHeroes {
-			if _, ok := ownedHeroes[hero.Code]; ok {
-				count++
-			} else if _, ok := packHeroes[hero.Code]; ok {
-				count++
-			}
-		}
-		cv.OwnedHeroCount = count
 	}
 
 	cv.Calculate()

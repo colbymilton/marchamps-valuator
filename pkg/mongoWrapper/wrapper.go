@@ -94,11 +94,32 @@ func CreateMany[T any](mdb *MongoDB, coll string, things []*T) error {
 	return nil
 }
 
-// ReplaceOne will replace a document in the database that has a matching "_id"
+// ReplaceMany
+func ReplaceMany[T any](mdb *MongoDB, coll string, filter bson.D, things []*T) error {
+	for _, thing := range things {
+		if err := ReplaceOne[T](mdb, coll, filter, thing); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ReplaceManyID
+func ReplaceManyID[T any](mdb *MongoDB, coll string, things []*T) error {
+	for _, thing := range things {
+		if err := ReplaceOneID[T](mdb, coll, thing); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ReplaceOne will replace a document in the database with the given filter
 func ReplaceOne[T any](mdb *MongoDB, coll string, filter bson.D, thing *T) error {
 	collection := mdb.db.Collection(coll)
 
-	_, err := collection.ReplaceOne(defaultContext(), filter, thing)
+	opts := options.Replace().SetUpsert(true)
+	_, err := collection.ReplaceOne(defaultContext(), filter, thing, opts)
 	return err
 }
 
