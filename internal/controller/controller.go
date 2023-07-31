@@ -26,7 +26,7 @@ const (
 	cMeta       = "meta"
 
 	cMetaId     = 1
-	cUpdateFreq = time.Second * 6
+	cUpdateFreq = time.Hour * 6
 )
 
 type Valuator struct {
