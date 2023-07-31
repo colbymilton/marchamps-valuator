@@ -2,7 +2,7 @@
     <v-btn icon v-bind="props">
         <v-icon>mdi-information</v-icon>
         <v-dialog v-model="dialog" activator="parent" width="auto" scrollable max-width="1100">
-            <v-card class="align-center pa-4" color="secondary">
+            <v-card class="align-center pa-4" color="secondary" border>
                 <v-card-title>What is the Marvel Champions Pack Valuator?</v-card-title>
                 <v-card-text>
                     This tool is meant to help Marvel Champions players 
