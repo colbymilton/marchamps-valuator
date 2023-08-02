@@ -1,16 +1,18 @@
 # Marvel Champions Pack Valuator
 
+Hosted [here](https://marchampsvalue.com)!
+
 ## What is Marvel Champions?
 
 If you've somehow come across this repo without knowing what Marvel Champions is, here's a brief description:
 
-> "Marvel Champions is a cooperative living card game from Fantasy Flight Games, with the Marvel license. You take control of a hero from the Marvel universe and attempt to defeat a scenario represented by a major villain, such as Rhino in the Core Set. Every hero has its own signature cards that must be included when building a deck for that hero, while the remainder of the deck is made up of whichever aspect is chosen: Justice, Leadership, Aggression, or Protection. In this way, you can play your favorite hero in whatever role best complements the team." - teamcovenant.com
+> "Marvel Champions is a cooperative living card game from Fantasy Flight Games, with the Marvel license. You take control of a hero from the Marvel universe and attempt to defeat a scenario represented by a major villain, such as Rhino in the Core Set. Every hero has its own signature cards that must be included when building a deck for that hero, while the remainder of the deck is made up of whichever aspect is chosen: Justice, Leadership, Aggression, or Protection. In this way, you can play your favourite hero in whatever role best complements the team." - teamcovenant.com
 
 For more information, see the game's official page: https://www.fantasyflightgames.com/en/products/marvel-champions-the-card-game/
 
 ## So what is this tool?
 
-The Marvel Champions Pack Valuator is a tool that is meant to help players decide which pack they should buy next when attempting to build up their collection. It's worth noting that I believe players should primarily focus on acquiring the heroes (and villains) that interest them - but if you've already bought your favorite heroes, this tool might help you decide what to get next!
+The Marvel Champions Pack Valuator is a tool that is meant to help players decide which pack they should buy next when attempting to build up their collection. It's worth noting that I believe players should primarily focus on acquiring the heroes (and villains) that interest them - but if you've already bought your favourite heroes, this tool might help you decide what to get next!
 
 Another note: this tool is focused on improving your collection for deck building. That means packs are not evaluated based on the hero that they include; they are instead evaluated based on the *other* cards in the pack. 
 
@@ -29,7 +31,7 @@ Every card is valued at 100 points by default. There are then multipliers added 
 
 \* An eligible deck is defined as "a deck that could feasibly include the card":
 - The deck must be running the appropriate aspect (a protection card is not eligible in an aggression deck).
-- The deck must have been updated since the release of the card (a card from Wolverine's pack which released in 2022 is not eligible in a deck from 2020).
-- For trait-locked cards, the deck must be for a hero that has or can reasonably acquire the specifed trait (Dive Bomb can only be played if your identity has the aerial trait and thus is not eligible in Captain America decks, but is eligible with Spectrum, Dr. Strange, Nova, etc.)
+- The deck must have been updated since the release of the card (a card from Wolverine's pack which was released in 2022 is not eligible in a deck from 2020).
+- For trait-locked cards, the deck must be for a hero that has or can reasonably acquire the specified trait (Dive Bomb can only be played if your identity has the aerial trait and thus is not eligible in Captain America decks, but is eligible with Spectrum, Dr. Strange, Nova, etc.)
 
 \*\* A trait-locked card is a card that can only be played if your identity has a specific trait. Dive Bomb requires aerial, The Sorcerer Supreme requires Mystic, etc.
